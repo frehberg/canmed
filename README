@@ -1,2 +1,31 @@
+CanMed, the CANBUS MEDIATOR to DBUS, UDP and RESTful
+
+Events and messages shall be routed between different busses, such as
+CANBUS, DBUS, plain UDP and RESTful HTTP.
+
+For example:
+* Messages shall be read from CANBUS and forwarded
+  to one or more UDP destination (multicast or unicast).
+* Messages shall be read from UDP-endpoints (multicast or unicast) 
+  and shall be forwarded to a specific CANBUS.
+
+To avoid messages loss due to delays caused by garbage-collectors etc.
+C++ has been chosen for the implementation. The architecture is based on 
+single threaded, non-blocking asynchronous communication. Events are 
+managed by the Glibn-Mainloop being capable to handle various file and 
+network events.
+
+Milestones:
+0) Setup project 
+1) Realize routing between mutiple UDP resources
+2) Realize routing between CANBUS and UDP resources
+3) Setup test-framework
+4) Implement generic adapter for DBUS resources 
+5) Implement optional JSON formatting of UDP traffic.
+
+Current state of the  project: Milestone 1
+
+Note:
+Thanks to the following howto, I was able to set up the automake environment:
 automake howto from http://mij.oltrelinux.com/devel/autoconf-automake/
 
