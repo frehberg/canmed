@@ -12,5 +12,6 @@ configure: configure.ac Makefile.am src/Makefile.am
 	aclocal && automake --add-missing && autoconf
 	
 dist-clean:
-	rm -fr build configure src/Makefile.in Makefile.in compile depcomp install-sh missing aclocal.m4 autom4te.cache/
+	rm -fr *~ build configure compile depcomp install-sh missing aclocal.m4 autom4te.cache \
+	    src/*~ src/Makefile.in Makefile.in 
 	

@@ -29,18 +29,24 @@ public:
 			Glib::RefPtr<KeyValueTable>& config)
 	{
 		Glib::RefPtr<Gio::SocketAddress> src_address;
+		Glib::RefPtr<Gio::SocketAddress> dst_address;
+
 		gboolean allow_reuse = true;
 		Glib::ustring PARAM_IPV6("ipv6");
 		Glib::ustring PARAM_PORT("port");
 		Glib::ustring PARAM_GROUP("group");
 		// Glib::ustring PARAM_MODE("inout");
 		Glib::ustring PARAM_ADDR("addr");
-		// Glib::ustring PARAM_DEST("dest");
+		Glib::ustring PARAM_DEST("dest");
 
 		gboolean      use_ipv6 = config->get_with_default_as_bool(PARAM_IPV6, false);
 		gushort       port     = config->get_with_default_as_int(PARAM_PORT, 7777);
 		Glib::ustring group    = config->get_with_default(PARAM_GROUP, "");
-		Glib::ustring addr     = config->get_with_default(PARAM_ADDR, "");
+		Glib::ustring src      = config->get_with_default(PARAM_ADDR, "");
+		Glib::ustring dst      = config->get_with_default(PARAM_DEST,
+				use_ipv6
+				? "ff02::1"
+				: "255.255.255.255");
 
 		Gio::SocketType socket_type;
 		Gio::SocketFamily socket_family;
@@ -55,19 +61,28 @@ public:
 						Gio::SOCKET_PROTOCOL_DEFAULT);
 
         socket->set_blocking (false);
-        Glib::RefPtr<Gio::InetAddress> inet_addr = addr.empty()
+        Glib::RefPtr<Gio::InetAddress> inet_src = src.empty()
         		? Gio::InetAddress::create_any (socket_family)
-        		:  Gio::InetAddress::create(addr);
+        		:  Gio::InetAddress::create(src);
 
-		src_address = Gio::InetSocketAddress::create (inet_addr, port);
+        src_address = Gio::InetSocketAddress::create (inet_src, port);
+
+        Glib::RefPtr<Gio::InetAddress> inet_dst =  Gio::InetAddress::create(dst);
+        dst_address = Gio::InetSocketAddress::create (inet_dst, port);
+
 
 		std::cout << Glib::ustring::compose ("Binding to %1 [%2]\n",
 				socket_address_to_string(src_address),
 				allow_reuse);
 
+	    if (inet_dst->get_is_multicast()) {
+	    	std::cout << Glib::ustring::compose("Joining multicast group %1", inet_dst);
+	    	socket->join_multicast_group(inet_dst, false);
+	    }
+
 		socket->bind (src_address, allow_reuse);
 
-		return Glib::RefPtr<UdpHandler>(new UdpHandler(context, socket));
+		return Glib::RefPtr<UdpHandler>(new UdpHandler(context, socket, dst_address));
 	}
 
 
@@ -150,12 +165,15 @@ public:
 
 		Glib::RefPtr<Gio::SocketAddress> address;
 
-		//gchar buffer[4096] = "none";
+		gchar buffer[4096] = "none";
 
 		// std::cerr << Glib::ustring::compose ("snd [%1]: %2", strlen(buffer), buffer);
 		std::cerr << "snd " << std::endl;
 
+
 		Glib::RefPtr<CanMessage> can_mesg = queue_pop();
+
+		_socket->send_to(_dst_addr, buffer, 5);
 
 		// sned the message out
 //		gssize size =
@@ -173,8 +191,10 @@ private:
 	Glib::RefPtr<Gio::Socket> getRecvSocket() { return _socket; };
 	Glib::RefPtr<Glib::MainLoop> getLoop() { return _context->get_main_loop(); };
 
-	UdpHandler(Glib::RefPtr<AppContext>& context, Glib::RefPtr<Gio::Socket>& socket)
-		: _context(context), _socket(socket)
+	UdpHandler(Glib::RefPtr<AppContext>& context,
+			Glib::RefPtr<Gio::Socket>& socket,
+			Glib::RefPtr<Gio::SocketAddress>& dst_addr)
+		: _context(context), _socket(socket), _dst_addr(dst_addr)
 	{
 	}
 
@@ -211,8 +231,9 @@ private:
 		return handler->handle_rcv_event_cb(socket, condition);
 	}
 
-	Glib::RefPtr<AppContext>       _context;
-	Glib::RefPtr<Gio::Socket>      _socket;
+	Glib::RefPtr<AppContext>         _context;
+	Glib::RefPtr<Gio::Socket>        _socket;
+	Glib::RefPtr<Gio::SocketAddress> _dst_addr;
 };
 
 

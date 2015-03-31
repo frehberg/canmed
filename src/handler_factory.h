@@ -20,10 +20,10 @@ public:
 			std::cerr << "Creating UdpHandler" << std::endl;
 
 			return Glib::RefPtr<Handler>(
-					new UdpHandler(app_context, handler_config));
+					UdpHandler::create(app_context, handler_config));
 		}
 
-		return Glib::RefPtr<Handler>(NULL);
+		return Glib::RefPtr<Handler>();
 	}
 private:
 	HandlerFactory();
