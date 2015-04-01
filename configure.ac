@@ -9,6 +9,7 @@ AC_CONFIG_HEADERS([config.h])
 
 # Checks for programs.
 AC_PROG_CXX
+AC_LANG_PUSH([C++])
 
 # Checks for libraries.
 # FIXME: Replace `main' with a function in `-lpthread':
